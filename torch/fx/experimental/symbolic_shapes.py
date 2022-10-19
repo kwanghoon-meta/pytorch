@@ -116,8 +116,18 @@ class PySymInt(object):
         self.constant = constant
         # breakpoint()
         self.ref_id = ref_id
+        # if not self.ref_id:
+            # breakpoint()
+        if self.ref_id and str(self.expr) not in ('0', '1', 'False', 'True'):
+            if self.expr in self.shape_env.expr_to_id:
+                # breakpoint()
+                if self.shape_env.expr_to_id[self.expr] != self.ref_id:
+                    breakpoint()
+                assert self.shape_env.expr_to_id[self.expr] == self.ref_id, "Bro im straight up not having a good time right now"
+            self.shape_env.expr_to_id[self.expr] = self.ref_id
 
-    def wrap(self, num):
+    def wrap(self, num): # Node is a torch._C.SymIntNode
+        # breakpoint()
         return PySymInt(sympy.Integer(num), self.shape_env, constant=num)
 
     def clone(self):
@@ -137,7 +147,7 @@ class PySymInt(object):
     def guard_int(self, file, line):
         # TODO: use the file/line for some useful diagnostic on why a
         # guard occurred
-        return int(self.shape_env.evaluate_expr(self.expr, self.ref_id))
+        return int(self.shape_env.evaluate_expr(self.expr))
 
     def __sym_float__(self):
         if SYM_FUNCTION_MODE:
@@ -149,7 +159,7 @@ class PySymInt(object):
 
     def __bool__(self):
         # breakpoint()
-        return bool(self.shape_env.evaluate_expr(self.shape_env.replace(self.expr), self.ref_id))
+        return bool(self.shape_env.evaluate_expr(self.shape_env.replace(self.expr)))
 
 class PySymFloat:
     def __init__(self, expr, shape_env, constant=None, ref_id=None):
@@ -157,6 +167,9 @@ class PySymFloat:
         self.shape_env = shape_env
         self.constant = constant
         self.ref_id = ref_id
+        if self.expr in self.shape_env.expr_to_id:
+            assert self.shape_env.expr_to_id[self.expr] == self.ref_id, "Bro im straight up not having a good time right now"
+        self.shape_env.expr_to_id[self.expr] = self.ref_id
 
     def wrap(self, num):
         return PySymFloat(sympy.Float(num), self.shape_env, constant=num)
@@ -243,6 +256,7 @@ def _make_magic(method, func, py_type):
     func = lru_cache(256)(func)
 
     def magic_impl(self, other):
+        # breakpoint()
         if method in ["min", "max"]:
             op = getattr(builtins, method)
         else:
@@ -260,11 +274,11 @@ def _make_magic(method, func, py_type):
         out = func(expr, other_expr)
         out = sympy.expand(out)
         if method in ["truediv"]:
-            return PySymFloat(out, self.shape_env)
+            return PySymFloat(out, self.shape_env, ref_id=other.ref_id)
         else:
             # TODO: relational operators actually technically return a
             # PySymBool, this is a type error
-            return py_type(out, self.shape_env)
+            return py_type(out, self.shape_env, ref_id=other.ref_id)
 
     def unary_magic_impl(self):
         if SYM_FUNCTION_MODE:
@@ -343,6 +357,7 @@ class ShapeEnv(object):
         # Duck-shaping says that if two input tensors have the same size,
         # they get assigned the same symbolic variable
         self.val_to_var: Dict[int, "sympy.Expr"] = {0: sympy.Integer(0), 1: sympy.Integer(1)}
+        self.expr_to_id = {}
 
     def _get_key(self):
         """
@@ -562,7 +577,7 @@ class ShapeEnv(object):
             return
 
     @lru_cache(256)
-    def evaluate_expr(self, expr: "sympy.Expr", ref_id=None):
+    def evaluate_expr(self, expr: "sympy.Expr"):
         """
         Given an expression, evaluates it, adding guards if necessary
         """
@@ -582,6 +597,6 @@ class ShapeEnv(object):
         # actually called us
         stack = ''.join(traceback.format_list(traceback.extract_stack()[:-2]))
         breakpoint()
-        self.guards.append((expr, concrete_val, stack, ref_id))
+        self.guards.append((expr, concrete_val, stack))
         print("GUARDS IN AOT", self.guards)
         return concrete_val

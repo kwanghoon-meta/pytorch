@@ -212,6 +212,7 @@ class DisableContext(_TorchDynamoContext):
 def catch_errors_wrapper(callback):
     @functools.wraps(callback)
     def catch_errors(frame, cache_size):
+        # breakpoint()
         try:
             if frame.f_lasti >= 0 or skipfiles.check(frame.f_code.co_filename):
                 log.debug(f"skipping {frame.f_code.co_name} {frame.f_code.co_filename}")

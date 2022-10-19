@@ -418,7 +418,7 @@ class GuardBuilder:
             value = self.get(guard.name)
             self.tensor_check_names.append(self.arg_ref(guard))
             self.tensor_check_examples.append(value)
-            breakpoint()
+            # breakpoint()
             self.tensor_check_ids.append(self.id_ref(value))
 
             # Note: Guard code produced for tensor_match is a little different.
@@ -536,7 +536,7 @@ class CheckFunctionManager:
         )
         check_tensors_fn = None
         check_tensors_verbose_fn = None
-        breakpoint()
+        # breakpoint()
         if tensor_check_names:
             tensor_check_examples = (
                 local_builder.tensor_check_examples
