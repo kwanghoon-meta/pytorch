@@ -108,6 +108,7 @@ class OutputGraph(fx.Tracer):
         self.initial_random_state = ()
         self.unspec_variable_map = {}
         self.shape_env = DYNAMO_GLOBAL_SHAPE_ENV
+        print("EXPRS - START OF FRAME", self.shape_env.expr_to_id)
 
     @property
     def output(self):
@@ -401,7 +402,7 @@ class OutputGraph(fx.Tracer):
         name = unique_id("__compiled_fn")
 
         if config.dynamic_shapes:
-            breakpoint()
+            # breakpoint()
             functorch_config.use_dynamic_shapes = True
             gm._dynamo_shape_env = tx.output.shape_env
 

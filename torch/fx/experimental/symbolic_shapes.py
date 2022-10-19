@@ -274,11 +274,11 @@ def _make_magic(method, func, py_type):
         out = func(expr, other_expr)
         out = sympy.expand(out)
         if method in ["truediv"]:
-            return PySymFloat(out, self.shape_env, ref_id=other.ref_id)
+            return PySymFloat(out, self.shape_env)
         else:
             # TODO: relational operators actually technically return a
             # PySymBool, this is a type error
-            return py_type(out, self.shape_env, ref_id=other.ref_id)
+            return py_type(out, self.shape_env)
 
     def unary_magic_impl(self):
         if SYM_FUNCTION_MODE:
@@ -372,7 +372,7 @@ class ShapeEnv(object):
         We try our best to express stride in terms of the sizes, so as to not
         introduce new symbolic variables.
         """
-        breakpoint()
+        # breakpoint()
         size = [self.create_symbol(i) for i in ex.size()]
         stride: List[Optional[sympy.Expr]] = [None] * len(size)
         for i, val in enumerate(ex.stride()):
@@ -596,7 +596,7 @@ class ShapeEnv(object):
         # NB: drop two frames; evaluate_expr and the Sym* function that
         # actually called us
         stack = ''.join(traceback.format_list(traceback.extract_stack()[:-2]))
-        breakpoint()
+        # breakpoint()
         self.guards.append((expr, concrete_val, stack))
-        print("GUARDS IN AOT", self.guards)
+        print("EXPR IN AOT", self.expr_to_id)
         return concrete_val

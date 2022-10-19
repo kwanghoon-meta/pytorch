@@ -539,7 +539,7 @@ def create_aot_dispatcher_function(
         def process_inputs(flat_args):
             if config.use_fake_tensor:
                 def convert(idx, x):
-                    breakpoint()
+                    # breakpoint()
                     if not isinstance(x, torch.Tensor):
                         return x
                     if idx < aot_config.num_params_buffers and config.static_weight_shapes:

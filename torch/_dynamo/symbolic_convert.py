@@ -364,7 +364,7 @@ class InstructionTranslatorBase(object):
             if isinstance(self, InstructionTranslator):
                 self.output.cleanup()
                 # breakpoint()
-                print("GUARDS", self.output.shape_env.guards)
+                print("EXPRS - END OF RUN", self.output.shape_env.expr_to_id)
 
     def push(self, val):
         assert val is None or isinstance(
