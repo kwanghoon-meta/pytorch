@@ -677,11 +677,13 @@ try:
 
     def wrap_to_fake_tensor(e, fake_mode):
         if type(e) in (torch.Tensor, torch.nn.Parameter):
-            return wrap_fake_exception(lambda: fake_mode.from_tensor(e))
+            # breakpoint()
+            return wrap_fake_exception(lambda: fake_mode.from_tensor(e, static_shapes=config.dynamic_shapes is False))
         else:
             return e
 
     def deepcopy_to_fake_tensor(obj, fake_mode):
+        breakpoint()
         with torch._subclasses.fake_tensor.FakeCopyMode(fake_mode):
             return wrap_fake_exception(lambda: copy.deepcopy(obj))
 

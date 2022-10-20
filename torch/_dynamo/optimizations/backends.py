@@ -43,8 +43,8 @@ def create_backend(fn):
         if model is None:
             return None
 
-        if hasattr(model, "_dynamo_shape_env"):
-            kwargs["shape_env"] = model._dynamo_shape_env
+        # if hasattr(model, "_dynamo_shape_env"):
+            # kwargs["shape_env"] = model._dynamo_shape_env
 
         if not isinstance(model, SubGraph):
             with tempfile.TemporaryDirectory() as tmp:
