@@ -110,7 +110,7 @@ class PySymInt(object):
     our program. They're what sit under FakeTensor, and contains our primary
     implementation of symbolic shapes.
     """
-    def __init__(self, expr, shape_env, constant=None, ref_id=None):
+    def __init__(self, expr, shape_env, constant=None, ref_id=None, kind=None):
         self.expr = expr
         self.shape_env = shape_env
         self.constant = constant
@@ -118,20 +118,22 @@ class PySymInt(object):
         self.ref_id = ref_id
         # if not self.ref_id:
             # breakpoint()
-        if self.ref_id and str(self.expr) not in ('0', '1', 'False', 'True'):
-            if self.expr in self.shape_env.expr_to_id:
-                # breakpoint()
-                if self.shape_env.expr_to_id[self.expr] != self.ref_id:
-                    breakpoint()
-                assert self.shape_env.expr_to_id[self.expr] == self.ref_id, "Bro im straight up not having a good time right now"
-            self.shape_env.expr_to_id[self.expr] = self.ref_id
+        self.kind = kind
+        if self.ref_id and str(self.expr) not in ('False', 'True'):
+            if self.expr not in self.shape_env.expr_to_id:
+                self.shape_env.expr_to_id[self.expr] = set()
+            self.shape_env.expr_to_id[self.expr].add((self.ref_id, self.kind))
+
+            if self.ref_id not in self.shape_env.expr_to_id:
+                self.shape_env.expr_to_id[self.ref_id] = set()
+            self.shape_env.expr_to_id[self.ref_id].add((self.expr, self.kind))
 
     def wrap(self, num): # Node is a torch._C.SymIntNode
         # breakpoint()
         return PySymInt(sympy.Integer(num), self.shape_env, constant=num)
 
     def clone(self):
-        return PySymInt(self.expr, self.shape_env, constant=self.constant, ref_id=self.ref_id)
+        return PySymInt(self.expr, self.shape_env, constant=self.constant, ref_id=self.ref_id, kind=self.kind)
 
     def __str__(self):
         return f"{self.expr}"
@@ -169,7 +171,13 @@ class PySymFloat:
         self.ref_id = ref_id
         if self.expr in self.shape_env.expr_to_id:
             assert self.shape_env.expr_to_id[self.expr] == self.ref_id, "Bro im straight up not having a good time right now"
-        self.shape_env.expr_to_id[self.expr] = self.ref_id
+        if self.expr not in self.shape_env.expr_to_id:
+            self.shape_env.expr_to_id[self.expr] = set()
+        self.shape_env.expr_to_id[self.expr].add(self.ref_id)
+
+        if self.expr not in self.shape_env.expr_to_id:
+            self.shape_env.expr_to_id[self.ref_id] = ()
+        self.shape_env.expr_to_id[self.ref_id].add(self.expr)
 
     def wrap(self, num):
         return PySymFloat(sympy.Float(num), self.shape_env, constant=num)
@@ -403,10 +411,10 @@ class ShapeEnv(object):
                 )[0]
                 stride[i] = self.create_symbol(val)
         assert all(x is not None for x in stride)
-        return [self.create_symintnode(i, id(ex)) for i in size], [self.create_symintnode(i, id(ex)) for i in stride]  # type: ignore[arg-type]
+        return [self.create_symintnode(i, id(ex), "size") for i in size], [self.create_symintnode(i, id(ex), "stride") for i in stride]  # type: ignore[arg-type]
 
-    def create_symintnode(self, expr: Union["sympy.Expr", int], ref_id):
-        py_sym_int = PySymInt(expr, self, ref_id=ref_id)
+    def create_symintnode(self, expr: Union["sympy.Expr", int], ref_id: int, kind: str):
+        py_sym_int = PySymInt(expr, self, ref_id=ref_id, kind=kind)
         cpp_sym_int = torch.SymIntNode.new_symint(py_sym_int)  # type: ignore[attr-defined]
         return cpp_sym_int
 
@@ -599,4 +607,5 @@ class ShapeEnv(object):
         # breakpoint()
         self.guards.append((expr, concrete_val, stack))
         print("EXPR IN AOT", self.expr_to_id)
+        breakpoint()
         return concrete_val

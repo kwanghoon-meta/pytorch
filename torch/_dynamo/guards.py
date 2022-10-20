@@ -29,6 +29,8 @@ from .utils import (
     tuple_iterator_len,
 )
 
+import sympy
+
 log = logging.getLogger(__name__)
 TensorGuards = torch._C._dynamo.guards.TensorGuards
 check_obj_id = torch._C._dynamo.guards.check_obj_id
@@ -177,7 +179,7 @@ class GuardBuilder:
         # Code is python expression strings generated for each guard
         self.code: List[str] = []
         self.tensor_check_names = []
-        self.tensor_check_ids = []
+        self.tensor_check_ids = {}
         self.tensor_check_examples = []
         self.guarded_code = guarded_code
 
@@ -416,10 +418,11 @@ class GuardBuilder:
             self.ID_MATCH(guard)
         else:
             value = self.get(guard.name)
-            self.tensor_check_names.append(self.arg_ref(guard))
+            tensor_name = self.arg_ref(guard)
+            self.tensor_check_names.append(tensor_name)
             self.tensor_check_examples.append(value)
             # breakpoint()
-            self.tensor_check_ids.append(self.id_ref(value))
+            self.tensor_check_ids[tensor_name] = self.id_ref(value)
 
             # Note: Guard code produced for tensor_match is a little different.
             # We accumulate tensor names, then do a single install of `___check_tensors`.
@@ -486,6 +489,7 @@ class GuardedCode:
 class CheckFunctionManager:
     def __init__(
         self,
+        shape_env = None,
         guards: Optional[Set[Guard]] = None,
         f_locals: Optional[Dict] = None,
         f_globals: Optional[Dict] = None,
@@ -493,6 +497,7 @@ class CheckFunctionManager:
         self.valid = True
         self._weakrefs = []
         self._seen_ids = set()
+        self.shape_env = shape_env
 
         # Note: right overrides left
         def combine_scopes(left, right):
@@ -513,7 +518,12 @@ class CheckFunctionManager:
                 continue
             guard.create(local_builder, global_builder)
         self.check_fn = self.compile_check_fn(local_builder, global_builder)
+        # breakpoint()
         self._seen_ids.clear()
+
+    def _expression_parser(self, expr, name_to_size, name_to_stride):
+        breakpoint()
+
 
     def compile_check_fn(self, local_builder, global_builder):
         assert not (set(local_builder.argnames) & set(global_builder.argnames))
@@ -534,10 +544,49 @@ class CheckFunctionManager:
         tensor_check_names = (
             local_builder.tensor_check_names + global_builder.tensor_check_names
         )
+        
+        tensor_check_ids = local_builder.tensor_check_ids.copy()
+        tensor_check_ids.update(global_builder.tensor_check_ids)
+
+
         check_tensors_fn = None
         check_tensors_verbose_fn = None
-        # breakpoint()
+        breakpoint()
         if tensor_check_names:
+            size_id_pairs = []
+            stride_id_pairs = []
+            for name in tensor_check_names:
+                tensor_id = tensor_check_ids[name]
+                values_and_kind_list = self.shape_env.expr_to_id[tensor_id]
+                for (val, kind) in values_and_kind_list:
+                    val = str(val)
+                    if val in ('0', '1'):
+                        continue
+                    if kind == "size":
+                        size_id_pairs.append((val, tensor_id))
+                    if kind == "stride":
+                        stride_id_pairs.append((val, tensor_id))
+
+            expressions = [guard[0] for guard in self.shape_env.guards]
+            # size_keys = [key for key in size_to_id.keys()]
+            # stride_keys = [key for key in stride_to_id.keys()]
+            unfinished_expressions = expressions
+            for expression in expressions:
+                breakpoint()
+                # if isinstance(expression, sympy.core.relational.Equality):
+                expr_as_str = str(expression)
+                for key, tensor_id in size_id_pairs:
+                    breakpoint()
+                    expr_as_str = expr_as_str.replace(key, f"{tensor_id}.size")
+
+                for key, tensor_id in stride_id_pairs:
+                    expr_as_str = expr_as_str.replace(key, f"{tensor_id}.stride")
+                
+                breakpoint()
+
+                self._expression_parser(expression, size_to_id, stride_to_id)
+
+
             tensor_check_examples = (
                 local_builder.tensor_check_examples
                 + global_builder.tensor_check_examples
@@ -596,6 +645,12 @@ class CheckFunctionManager:
         except TypeError:
             pass  # cannot weakref bool object
         return id(obj)
+
+    def __call__(self, *args, **kwargs):
+        return self.check_fn(*args, **kwargs)
+
+    def finalize(self):
+        breakpoint()
 
 
 def guard_fail_hook(

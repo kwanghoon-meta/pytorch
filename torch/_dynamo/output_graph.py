@@ -496,6 +496,8 @@ class OutputGraph(fx.Tracer):
         self.cleanups.append(CleanupHook.create(self.root_globals, name, value))
 
     def cleanup(self):
+        if hasattr(self, "check_fn_manager"):
+            self.check_fn_manager.finalize()
         # There is a reference cycle between tracer and OutputGraph, causing
         # some of the tensor objects to be held alive for longer than necessary.
 

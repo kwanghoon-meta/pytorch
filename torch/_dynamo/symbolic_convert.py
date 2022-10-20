@@ -363,7 +363,7 @@ class InstructionTranslatorBase(object):
             # breakpoint()
             if isinstance(self, InstructionTranslator):
                 self.output.cleanup()
-                # breakpoint()
+                breakpoint()
                 print("EXPRS - END OF RUN", self.output.shape_env.expr_to_id)
 
     def push(self, val):
