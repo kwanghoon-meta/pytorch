@@ -170,6 +170,18 @@ function test_torch_deploy(){
  popd
 }
 
+function install_huggingface() {
+  pip_install pandas
+  pip_install scipy
+  pip_install git+https://github.com/huggingface/transformers.git#egg=transformers
+}
+
+function install_timm() {
+  pip_install pandas
+  pip_install scipy
+  pip_install git+https://github.com/rwightman/pytorch-image-models
+}
+
 function test_functorch() {
   python test/run_test.py --functorch --verbose
 }
