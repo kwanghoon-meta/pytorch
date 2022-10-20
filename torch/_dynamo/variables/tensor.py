@@ -92,7 +92,7 @@ def cleanup_module(nn_module):
             if isinstance(attr, torch.Tensor):
                 copy_tensor = copy.deepcopy(attr.clone().detach())
                 delattr(nn_module, attr_name)
-                nn_module.register_buffer(attr_name, copy_tensor)
+                nn_module.register_parameter(attr_name, torch.nn.Parameter(copy_tensor))
     return nn_module
 
 
