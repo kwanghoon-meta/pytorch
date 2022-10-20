@@ -480,7 +480,7 @@ meta_function_expected_failures = {
     torch.cholesky_inverse : {f64, f32, c128, c64},
     torch.cholesky_solve : {f64, f32, c128, c64},
     torch.linalg.eig : {f64, f32, c128, c64},
-    torch.linalg.eigvals : {f64, f32, c128, c64},
+    # torch.linalg.eigvals : {f64, f32, c128, c64},     # unexpected success torch.linalg.eigvals, pytest -sv  test/test_meta.py -k test_meta_linalg_eigvals_cpu_
     torch.linalg.lstsq : {f64, f32, c128, c64},
 }
 
